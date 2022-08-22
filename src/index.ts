@@ -140,33 +140,34 @@ router.get("/tweet", async (ctx, next) => {
 });
 
 const getNextDayOfWeek = (date: Date, dayOfWeek: number) => {
-    const resultDate = new Date(new Date(date.getTime()).setUTCHours(0, 0, 0, 0));
+    const resultDate = new Date(new Date(date.getTime()).setUTCHours(23, 59, 59, 999));
 
-    resultDate.setDate(date.getDate() + (7 + dayOfWeek - date.getDay()) % 7);
+    resultDate.setUTCDate(date.getUTCDate() + (7 + dayOfWeek - date.getUTCDay()) % 7);
 
     return resultDate;
 }
 
 const getTweetString = async (): Promise<string> => {
     const current = new Date();
-    const endOfWeek = new Date(new Date(getNextDayOfWeek(new Date(current), 5)).setUTCHours(23, 59, 59))
+    const endOfWeek = new Date(new Date(getNextDayOfWeek(new Date(current), 5)))
 
     const hoursLeft = Math.floor(((endOfWeek.getTime() - current.getTime()) / 36e5) * 100) / 100
-    const weekLength = 24 * 7
+    const weekLength = 24 * 5
 
-    if (current.getDay() === 0) {
+    // console.log(current)
+    // console.log(endOfWeek);
+    // console.log(hoursLeft);
+    // console.log(weekLength);
+    // console.log(progress);
+    if (current.getUTCDay() === 0) {
         return "It's Sunday!"
     }
-    if (current.getDay() === 6) {
+    if (current.getUTCDay() === 6) {
         return "It's Saturday!"
     }
 
     const progress = Math.abs(Math.floor((1 - (hoursLeft / weekLength)) * 10000) / 10000)
 
-    // console.log(endOfWeek);
-    // console.log(hoursLeft);
-    // console.log(weekLength);
-    // console.log(progress);
 
     const filled = Math.ceil((progress * 1.5) * 10)
     // console.log(filled, 15 - filled);
@@ -175,7 +176,7 @@ const getTweetString = async (): Promise<string> => {
     // console.log("▓".repeat(filled) + "░".repeat(15 - filled))
     //▓▓▓▓▓▓▓▓ ▓ ░░░░░░
 
-    return `${"▓".repeat(filled)}${"░".repeat(15 - filled)} ${Math.floor(progress * 10000) / 100}%\n${hoursLeft} hours left until the weekend.`
+    return `${"▓".repeat(filled)}${"░".repeat(Math.abs(15 - filled))} ${Math.floor(progress * 10000) / 100}%\n${Math.ceil(hoursLeft)} hours left until the weekend.`
 }
 
 // console.log(getTweetString());
@@ -214,16 +215,16 @@ const RecurringTweets = async () => {
     if (result.errors)
         console.log(result.errors);
 };
+if (process.env.NODE_ENV === "development") {
+    app.use(errorHandler());
+    app.use(bodyParser());
+    app.use(logger());
+    app.use(router.routes()).use(router.allowedMethods());
 
-app.use(errorHandler());
-app.use(bodyParser());
-app.use(logger());
-app.use(router.routes()).use(router.allowedMethods());
-
-if (process.env.NODE_ENV === "development")
     app.listen(port, () => {
         console.info(`Koa app started and listening to port ${port}! 🚀`);
     });
+}
 
 try {
     RecurringTweets()
